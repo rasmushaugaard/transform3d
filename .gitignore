@@ -1,0 +1,7 @@
+example.py
+.pytest_cache
+__pycache__
+.idea
+build
+dist
+*.egg-info
