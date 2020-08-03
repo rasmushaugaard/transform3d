@@ -1,8 +1,7 @@
 # transform3d
 
-Handy classes to express transformations 
-and build tree structures of frames.
-  
+Handy classes for working with trees of 3d transformations.
+
 Uses `scipy.spatial.transform.Rotation` for stable conversions between rotation representations.
 
 #### install
@@ -13,10 +12,10 @@ $ pip install transform3d
 
 #### convention
 `a_t_b` denotes *b* relative to *a*, such that a point 
-in frame *b*, `p_b`, is transformed to frame *a* by `p_a = a_t_b @ p_b`. 
+in frame *b*, `p_b`, is transformed to frame *a* by: `p_a = a_t_b @ p_b`
+(Note that `@` is the matmul operator in python.)
 This provides easy to read series of transformations: 
 `a_t_d = a_t_b @ b_t_c @ c_t_d`.
-Note that `@` is the matmul operator in python.
 
 #### usage
 ```python
@@ -49,20 +48,24 @@ a = SceneNode(parent=root)
 b = SceneNode(parent=root)
 c = SceneNode(parent=b)
 # or:
-root, a, b, c = SceneNode.tree('root -> (a, b -> c)')
+root, a, b, c = SceneNode.n(4)
+root.adopt(
+    a,
+    b.adopt(c)
+)
+
 # set node transforms in relation to parents
 state = SceneState()
 state[a] = Transform(t=(1, 0, 0), rpy=(np.pi, 0, 0))
 state[b] = Transform(rotvec=(0, 90, 0), degrees=True)
-state[c] = Transform(quat=np.random.randn(4))
+state[c] = Transform(quat=(0, 0, 0, 1))
 
 # calculate transforms between nodes
 c_t_a = c.t(a, state)  # type: Transform
 
 # solve for transforms
 c_t_a_desired = Transform(t=(1, 2, 3), R=np.eye(3))
-root_t_b = b.solve(c, a, c_t_a_desired, state)
-state[b] = root_t_b
+state[b] = b.solve(c, a, c_t_a_desired, state)
 assert c.t(a, state).equals(c_t_a_desired)
 ```
 

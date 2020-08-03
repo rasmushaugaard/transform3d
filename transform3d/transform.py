@@ -137,7 +137,7 @@ class Transform:
 
     @classmethod
     def load(cls, fp):
-        cls.from_xyz_rotvec(np.loadtxt(fp))
+        return cls.from_xyz_rotvec(np.loadtxt(fp))
 
     @classmethod
     def random(cls, random_state: np.random.RandomState = np.random):  # for testing

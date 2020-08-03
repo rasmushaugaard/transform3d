@@ -1,26 +1,30 @@
+from tempfile import TemporaryFile
+
 import numpy as np
 
 from .. import Transform
 
 
-def test_transform_operations(atol=1e-13):
-    for _ in range(100):
-        t = np.random.randn(3)
-        rpy = np.random.randn(3)
-        f = Transform(t=t, rpy=rpy)
-
-        # matmul
-        f_ = Transform(t=t) @ Transform(rpy=rpy)
-        err = np.abs(f.matrix - f_.matrix).max()
-        assert err < atol, err
-
-        # inverse
-        assert np.abs((f.inv @ f).matrix - np.eye(4)).max() < atol
-        assert np.abs(np.linalg.inv(f.matrix) - f.inv.matrix).max() < atol
+def test_transform_operations():
+    t, rotvec = (1, 2, 3), (.1, .2, .3)
+    f = Transform(t=t, rotvec=rotvec)
+    assert f.equals(Transform(t=t) @ Transform(rotvec=rotvec))
+    assert f.inv.equals(Transform(matrix=np.linalg.inv(f.matrix)))
 
 
-def test_point_identity_transformation():
-    t = Transform()
-    assert np.all(np.ones(3) == t @ np.ones(3))
-    p = np.random.randn(100, 3)
-    assert np.all(p == t @ p)
+def test_point_transformation():
+    T = Transform.random()
+    t, R = T.t, T.R
+
+    for p in np.random.randn(3), np.random.randn(100, 3):
+        assert np.all(T.rotate(p) == p @ R.T)
+        assert np.all(T @ p == p @ R.T + t)
+
+
+def test_save_load():
+    t = Transform.random()
+    with TemporaryFile() as f:
+        t.save(f)
+        f.seek(0)
+        t_ = Transform.load(f)
+    assert t_.equals(t)

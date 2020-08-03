@@ -1,5 +1,4 @@
-import re
-from typing import Union, Dict, List, Sequence
+from typing import Union, Dict, Sequence
 
 from .transform import Transform
 
@@ -26,54 +25,44 @@ class SceneState:
         for n, t in zip(nodes, transforms):
             self.transforms[n] = t
 
-    def T(self, a: 'SceneNode', b: 'SceneNode'):
-        return a.t(b, self)
-
     def copy(self):
         return SceneState(self.transforms.copy())
 
 
 class SceneNode:
     def __init__(self, parent: 'SceneNode' = None, name='SceneNode'):
-        self.parent = parent
+        self._parent = parent
         self.name = name
 
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent):
+        if not isinstance(parent, SceneNode):
+            raise TypeError()
+        if parent.root() is self:
+            raise RuntimeError('assignment would create cycle')
+        self._parent = parent
+
+    def adopt(self, *children: 'SceneNode'):
+        for child in children:
+            child.parent = self
+        return self
+
     @classmethod
-    def tree(cls, s: str):
-        """
-        Example:
-            root, a, b, c = SceneNode.from_str('root -> (a, b -> c)')
-        """
-        s = re.sub(r'\s', '', s) + ','
-        nodes = []
-        last_b = 0
-        stack = [None]
-        p_stack = [None]
-        for match in re.finditer(r'(->|[,()])', s):
-            a, b = match.span()
-            m = s[a:b]
-            if m in ('->', ',', ')') and a - last_b:
-                name = s[last_b:a]
-                assert name
-                nodes.append(cls(parent=stack[-1], name=name))
-            if m == '->':
-                stack.append(nodes[-1])
-            if m == '(':
-                p_stack.append(stack[-1])
-            if m == ')':
-                p_stack.pop()
-                m = ','
-            if m == ',':
-                while stack[-1] != p_stack[-1]:
-                    stack.pop()
-            last_b = b
-        return tuple(nodes)
+    def n(cls, n: int):
+        return tuple((cls() for _ in range(n)))
 
     def path_to_root(self):
         nodes = [self]
         while nodes[-1].parent:
             nodes.append(nodes[-1].parent)
         return nodes
+
+    def root(self):
+        return self.path_to_root()[-1]
 
     def path_to(self, other: 'SceneNode'):
         root_to_self = self.path_to_root()[::-1]
@@ -89,26 +78,27 @@ class SceneNode:
 
     def t(self, other: 'SceneNode', state: SceneState):
         """
-        Returns other in self's frame
+        Returns self in other's frame, self_t_other
         """
-        self_to_common, common_to_other = self.path_to(other)
-        t = Transform()
-        for node in self_to_common[:-1]:
-            t = t @ state[node]
-        for node in common_to_other[1:]:
-            t = t @ state[node].inv
-        return t
+        path_self_to_common, path_common_to_other = self.path_to(other)
+        common_t_self = Transform()
+        for node in reversed(path_self_to_common[:-1]):
+            common_t_self = common_t_self @ state[node]
+        common_t_other = Transform()
+        for node in path_common_to_other[1:]:
+            common_t_other = common_t_other @ state[node]
+        return common_t_self.inv @ common_t_other
 
     def solve(self, a: 'SceneNode', b: 'SceneNode', a_t_b: Transform, state: SceneState):
         """
         Returns the transform that should be applied to self to achieve a_T_b.
         """
-        a_to_common, common_to_b = a.path_to(b)
-        b_t_a = a_t_b.inv
-        if self in a_to_common[:-1]:
-            return self.t(a, state) @ a_t_b @ b.t(self.parent, state)
-        elif self in common_to_b[1:]:
-            return self.t(b, state) @ b_t_a @ a.t(self.parent, state)
+        path_a_to_common, path_common_to_b = a.path_to(b)
+        if self in path_a_to_common[:-1]:
+            b_t_a = a_t_b.inv
+            return self.parent.t(b, state) @ b_t_a @ a.t(self, state)
+        elif self in path_common_to_b[1:]:
+            return self.parent.t(a, state) @ a_t_b @ b.t(self, state)
         else:
             ValueError('self.parent must be in the path from a to b')
 
