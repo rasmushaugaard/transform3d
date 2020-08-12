@@ -21,19 +21,18 @@ def _immutable(a) -> np.ndarray:
 
 _R_ident = _immutable(np.eye(3))
 _r_ident = Rotation.identity()
-_t_ident = _immutable(np.zeros(3))
+_p_ident = _immutable(np.zeros(3))
 
 
 class Transform:
-    def __init__(self, matrix: L = None, R: L = None, t: L = None, r: Rotation = None,
-                 quat: L = None, euler: L = None, rpy: L = None, rotvec: L = None, inv=None, degrees=False,
-                 validate=True):
+    def __init__(self, matrix: L = None, R: L = None, p: L = None, r: Rotation = None,
+                 quat: L = None, euler: L = None, rpy: L = None, rotvec: L = None, inv=None, degrees=False):
         self._r = None
         self._inv = inv  # type: Union[None, Transform]
         if matrix is not None:
             self.matrix = _immutable(matrix)
             self.R = matrix[:3, :3]
-            self.t = matrix[:3, 3]
+            self.p = matrix[:3, 3]
         else:
             if R is not None:
                 self.R = _immutable(R)
@@ -55,10 +54,10 @@ class Transform:
                 else:
                     self.R = self._r.as_matrix()
                     self.R.setflags(write=False)
-            self.t = _t_ident if t is None else _immutable(t)
+            self.p = _p_ident if p is None else _immutable(p)
             self.matrix = np.eye(4)
             self.matrix[:3, :3] = self.R
-            self.matrix[:3, 3] = self.t
+            self.matrix[:3, 3] = self.p
             self.matrix.setflags(write=False)
 
     @property
@@ -66,7 +65,7 @@ class Transform:
         if self._inv is None:
             self._inv = Transform(
                 R=self.R.T,
-                t=-self.t @ self.R,
+                p=-self.p @ self.R,
                 inv=self
             )
         return self._inv
@@ -95,11 +94,17 @@ class Transform:
 
     @property
     def xyz_rotvec(self):
-        return (*self.t, *self.rotvec)
+        return (*self.p, *self.rotvec)
+
+    def __len__(self):
+        return 6
+
+    def __getitem__(self, i: int):
+        return self.xyz_rotvec[i]
 
     @classmethod
     def from_xyz_rotvec(cls, xyz_rotvec):
-        return cls(t=xyz_rotvec[:3], rotvec=xyz_rotvec[3:])
+        return cls(p=xyz_rotvec[:3], rotvec=xyz_rotvec[3:])
 
     def __matmul__(self, other):
         if isinstance(other, Transform):
@@ -107,7 +112,7 @@ class Transform:
             matrix.setflags(write=False)
             return Transform(matrix=matrix)
         elif isinstance(other, (np.ndarray, Sequence)):
-            return np.asarray(other) @ self.R.T + self.t
+            return np.asarray(other) @ self.R.T + self.p
         else:
             raise NotImplementedError()
 
@@ -124,7 +129,7 @@ class Transform:
 
     def __mul__(self, scale):
         return Transform(
-            t=self.t * scale,
+            p=self.p * scale,
             rotvec=self.rotvec * scale,
         )
 
@@ -141,7 +146,7 @@ class Transform:
 
     @classmethod
     def random(cls, random_state: np.random.RandomState = np.random):  # for testing
-        return cls(t=random_state.randn(3), r=Rotation.random(random_state=random_state))
+        return cls(p=random_state.randn(3), r=Rotation.random(random_state=random_state))
 
     def __repr__(self):
         return str(self)

@@ -23,8 +23,8 @@ import numpy as np
 from transform3d import Transform, SceneNode, SceneState
 
 # basic Transform usage
-a_t_b = Transform(t=(1, 0, 0), rotvec=(0, 0, 0))
-b_t_c = Transform(t=(0, 0, 1), rpy=(0, 0, np.pi / 2))
+a_t_b = Transform(p=(1, 0, 0), rotvec=(0, 0, 0))
+b_t_c = Transform(p=(0, 0, 1), rpy=(0, 0, np.pi / 2))
 a_t_c = a_t_b @ b_t_c
 c_t_a = a_t_c.inv
 
@@ -56,16 +56,16 @@ root.adopt(
 
 # set node transforms in relation to parents
 state = SceneState()
-state[a] = Transform(t=(1, 0, 0), rpy=(np.pi, 0, 0))
+state[a] = Transform(p=(1, 0, 0), rpy=(np.pi, 0, 0))
 state[b] = Transform(rotvec=(0, 90, 0), degrees=True)
 state[c] = Transform(quat=(0, 0, 0, 1))
 
 # calculate transforms between nodes
-c_t_a = c.t(a, state)  # type: Transform
+c_t_a = c.p(a, state)  # type: Transform
 
 # solve for transforms
-c_t_a_desired = Transform(t=(1, 2, 3), R=np.eye(3))
+c_t_a_desired = Transform(p=(1, 2, 3), R=np.eye(3))
 state[b] = b.solve(c, a, c_t_a_desired, state)
-assert c.t(a, state).equals(c_t_a_desired)
+assert c.p(a, state).equals(c_t_a_desired)
 ```
 

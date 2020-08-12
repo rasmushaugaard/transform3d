@@ -6,19 +6,19 @@ from .. import Transform
 
 
 def test_transform_operations():
-    t, rotvec = (1, 2, 3), (.1, .2, .3)
-    f = Transform(t=t, rotvec=rotvec)
-    assert f.equals(Transform(t=t) @ Transform(rotvec=rotvec))
+    p, rotvec = (1, 2, 3), (.1, .2, .3)
+    f = Transform(p=p, rotvec=rotvec)
+    assert f.equals(Transform(p=p) @ Transform(rotvec=rotvec))
     assert f.inv.equals(Transform(matrix=np.linalg.inv(f.matrix)))
 
 
 def test_point_transformation():
-    T = Transform.random()
-    t, R = T.t, T.R
+    t = Transform.random()
+    p, R = t.p, t.R
 
-    for p in np.random.randn(3), np.random.randn(100, 3):
-        assert np.all(T.rotate(p) == p @ R.T)
-        assert np.all(T @ p == p @ R.T + t)
+    for pts in np.random.randn(3), np.random.randn(100, 3):
+        assert np.all(t.rotate(pts) == pts @ R.T)
+        assert np.all(t @ pts == pts @ R.T + p)
 
 
 def test_save_load():
@@ -28,3 +28,10 @@ def test_save_load():
         f.seek(0)
         t_ = Transform.load(f)
     assert t_.equals(t)
+
+
+def test_list():
+    t = Transform(p=(1, 2, 3), rotvec=(.1, .2, .3))
+    assert t[2] == 3
+    xyz_rotvec = list(t)
+    assert xyz_rotvec == [1, 2, 3, .1, .2, .3]
