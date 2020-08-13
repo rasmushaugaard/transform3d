@@ -1,8 +1,6 @@
-from typing import Union, Dict, Sequence
+from typing import Dict
 
 from .transform import Transform
-
-T = Union[Transform, str]
 
 
 class SceneState:
@@ -14,16 +12,10 @@ class SceneState:
     def __getitem__(self, node: 'SceneNode'):
         return self.transforms[node]
 
-    def __setitem__(self, node: Union['SceneNode', Sequence['SceneNode']],
-                    transform: Union[T, Sequence[T]]):
-        nodes = node if isinstance(node, Sequence) else [node]
-        transforms = transform if isinstance(transform, Sequence) else [transform]
-        transforms = [Transform.load(t) if isinstance(t, str) else t for t in transforms]
-        if len(transforms) == 1:
-            transforms *= len(nodes)
-        assert len(transforms) == len(nodes)
-        for n, t in zip(nodes, transforms):
-            self.transforms[n] = t
+    def __setitem__(self, node: 'SceneNode', transform: Transform):
+        assert isinstance(node, SceneNode)
+        assert isinstance(transform, Transform)
+        self.transforms[node] = transform
 
     def copy(self):
         return SceneState(self.transforms.copy())

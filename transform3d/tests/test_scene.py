@@ -40,7 +40,8 @@ def test_path_to_and_solve():
     assert c.path_to(b) == ([c], [c, b])
 
     state = SceneState()
-    state[a, c, b] = [Transform.random() for _ in range(3)]
+    for node in a, b, c:
+        state[node] = Transform.random()
 
     desired_a_t_b = Transform.random()
     state[c] = c.solve(a, b, desired_a_t_b, state)

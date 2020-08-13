@@ -7,7 +7,7 @@ Uses `scipy.spatial.transform.Rotation` for stable conversions between rotation 
 #### install
 
 ```
-$ pip install transform3d
+$ pip3 install transform3d
 ```
 
 #### convention
