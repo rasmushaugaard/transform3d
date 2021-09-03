@@ -73,7 +73,7 @@ class Transform:
     @property
     def r(self) -> Rotation:
         if self._r is None:
-            self._r = Rotation.from_matrix(self.R)
+            self._r = Rotation.from_matrix(self.R.copy())
         return self._r
 
     @cached_property
@@ -117,6 +117,8 @@ class Transform:
             raise NotImplementedError()
 
     def rotate(self, other):
+        if isinstance(other, Transform):
+            return Transform.from_xyz_rotvec(self.rotate(other.xyz_rotvec))
         other = np.asarray(other)
         d = other.shape[-1]
         if d == 6:  # screw

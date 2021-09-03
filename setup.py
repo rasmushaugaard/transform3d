@@ -5,7 +5,7 @@ with open("readme.md") as f:
 
 setuptools.setup(
     name='transform3d',
-    version='0.0.3',
+    version='0.0.4',
     author='Rasmus Laurvig Haugaard',
     author_email='rasmus.l.haugaard@gmail.com',
     description='Handy classes for working with trees of 3d transformations.',
